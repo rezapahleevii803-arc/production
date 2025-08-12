@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dasbor Pencarian Kendaraan - Widya Load Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+        .history-table::-webkit-scrollbar {
+            width: 6px;
+        }
+        .history-table::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+        .history-table::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Container Utama -->
+    <div class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-8 w-auto text-blue-600" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5z"/>
+                        </svg>
+                        <h1 class="text-xl font-bold text-gray-800">Dasbor AI POD</h1>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Konten Utama -->
+        <main class="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+            
+            <!-- Panel Pencarian Utama -->
+            <section class="bg-white p-6 rounded-xl shadow-md mb-8 max-w-4xl mx-auto">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 text-center">Pencarian Data Muatan Kendaraan</h2>
+                <p class="text-center text-gray-500 mb-6">Masukkan Nomor Kendaraan untuk melihat total volume dan riwayat perjalanan.</p>
+                
+                <!-- Aksi Pencarian Kendaraan -->
+                <div class="flex items-center space-x-2 max-w-lg mx-auto">
+                    <input type="text" id="vehicle-lookup-search" placeholder="Contoh: B 9876 XYZ" class="flex-grow block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-lg p-3 uppercase">
+                    <button id="vehicle-lookup-btn" class="inline-flex items-center justify-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" /></svg>
+                        <span class="ml-2">Cari</span>
+                    </button>
+                </div>
+
+                <!-- Area Hasil -->
+                <div id="result-area" class="mt-6 min-h-[10rem] flex items-center justify-center"></div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- DATA MASTER ---
+        const vehicleMasterData = {
+            'B 9876 XYZ': { supplier: 'CV. Jaya Abadi', cargoType: 'Pasir & Batu', capacity: 28 },
+            'D 1234 ABC': { supplier: 'PT. Batu Perkasa', cargoType: 'Batu Split', capacity: 30 },
+            'F 5678 DEF': { supplier: 'CV. Sumber Makmur', cargoType: 'Tanah & Pasir', capacity: 25 },
+            'A 4321 GHI': { supplier: 'CV. Jaya Abadi', cargoType: 'Pasir Urug', capacity: 25 },
+            'T 1111 AA': { supplier: 'PT. Batu Perkasa', cargoType: 'Batu Split 1/2', capacity: 28 },
+            'BG 1275 AA' : { supplier: 'PT. Semen Batu Raja', cargoType: 'Tanah Liat', capacity: 40 }
+        };
+
+        // --- DATA RIWAYAT PEMINDAIAN ---
+        const mockData = [
+            { id: 'LS0001583', ticketNo: 'LS0001583-S8184UP', timestampIsi: '2025-08-05T14:30:15Z', vehicleNo: 'B 9876 XYZ', material: 'Pasir Urug', supplier: 'CV. Jaya Abadi', volumeNet: 24.45 },
+            { id: 'LS0001584', ticketNo: 'LS0001584-W8907PA', timestampIsi: '2025-08-05T13:45:10Z', vehicleNo: 'D 1234 ABC', material: 'Batu Split 2/3', supplier: 'PT. Batu Perkasa', volumeNet: 29.80 },
+            { id: 'LS0001585', ticketNo: 'LS0001585-W8272PA', timestampIsi: '2025-08-05T12:10:55Z', vehicleNo: 'F 5678 DEF', material: 'Tanah Merah', supplier: 'CV. Sumber Makmur', volumeNet: 21.40 },
+            { id: 'LS0001586', ticketNo: 'LS0001586-S9743UU', timestampIsi: '2025-08-04T16:00:00Z', vehicleNo: 'B 9876 XYZ', material: 'Batu Split 1/2', supplier: 'CV. Jaya Abadi', volumeNet: 27.90 },
+            { id: 'LS0001587', ticketNo: 'LS0001587-A4321GHI', timestampIsi: '2025-08-04T15:12:30Z', vehicleNo: 'A 4321 GHI', material: 'Pasir Urug', supplier: 'CV. Jaya Abadi', volumeNet: 23.65 },
+            { id: 'LS0001588', ticketNo: 'LS0001588-D1234ABC', timestampIsi: '2025-08-03T11:05:00Z', vehicleNo: 'D 1234 ABC', material: 'Sirtu', supplier: 'PT. Batu Perkasa', volumeNet: 28.50 },
+            { id: 'LS0001589', ticketNo: 'LS0001589-B9876XYZ', timestampIsi: '2025-08-03T10:20:00Z', vehicleNo: 'B 9876 XYZ', material: 'Pasir Urug', supplier: 'CV. Jaya Abadi', volumeNet: 15.20 },
+            { id: 'LS0001590', ticketNo: 'LS0001590-T1111AA', timestampIsi: '2025-08-02T09:00:00Z', vehicleNo: 'T 1111 AA', material: 'Batu Split 1/2', supplier: 'PT. Batu Perkasa', volumeNet: 27.50 },
+            { id: 'LS0001690', ticketNo: 'LS0001690-BG1275AA', timestampIsi: '2025-08-12T01:01:00Z', vehicleNo: 'BG 1275 AA', material: 'Tanah Liat', supplier: 'PT.Semen Batu Raja', volumeNet: 40 },
+        ];
+
+        // --- DOM ELEMENTS ---
+        const lookupBtn = document.getElementById('vehicle-lookup-btn');
+        const lookupSearch = document.getElementById('vehicle-lookup-search');
+        const resultArea = document.getElementById('result-area');
+        
+        // --- UTILITY FUNCTIONS ---
+        const formatDateTime = (dateString) => new Date(dateString).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }).replace(/\./g, ':');
+
+        const handleVehicleLookup = () => {
+            const query = lookupSearch.value.trim().toUpperCase();
+            if (!query) {
+                resultArea.innerHTML = `<p class="text-center text-sm text-gray-500 p-4">Silakan masukkan nomor kendaraan.</p>`;
+                return;
+            }
+
+            const masterData = vehicleMasterData[query];
+            if (!masterData) {
+                resultArea.innerHTML = `<div class="w-full bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg fade-in"><p class="text-red-700 font-semibold">Kendaraan "${query}" tidak terdaftar.</p><p class="text-red-600 text-sm">Pastikan nomor kendaraan ada di data master.</p></div>`;
+                return;
+            }
+
+            const vehicleHistory = mockData.filter(item => item.vehicleNo.toUpperCase() === query).sort((a,b) => new Date(b.timestampIsi) - new Date(a.timestampIsi));
+            const totalVolume = vehicleHistory.reduce((sum, item) => sum + item.volumeNet, 0);
+            const tripCount = vehicleHistory.length;
+
+            const historyRows = vehicleHistory.map(item => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${item.ticketNo}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${formatDateTime(item.timestampIsi)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-800">${item.volumeNet.toFixed(2)} m³</td>
+                </tr>
+            `).join('');
+
+            resultArea.innerHTML = `
+                <div class="w-full bg-gradient-to-br from-blue-50 to-indigo-100 p-6 rounded-lg border border-blue-200 fade-in">
+                    <div class="pb-4 border-b border-blue-200">
+                        <div class="text-center">
+                            <h3 class="text-2xl font-bold text-gray-800">${query}</h3>
+                            <p class="text-sm text-gray-500">${masterData.supplier} • ${masterData.cargoType}</p>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+                            <div>
+                                <p class="text-sm text-gray-600">Total Volume</p>
+                                <p class="text-2xl font-bold text-blue-700">${totalVolume.toFixed(2)} m³</p>
+                            </div>
+                            <div>
+                                <p class="text-sm text-gray-600">Total Perjalanan</p>
+                                <p class="text-2xl font-bold text-blue-700">${tripCount}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <h4 class="text-md font-semibold text-gray-700 mb-2 text-center">Riwayat Perjalanan</h4>
+                        <div class="overflow-y-auto max-h-60 history-table rounded-lg border">
+                            <table class="min-w-full">
+                                <thead class="bg-blue-100 sticky top-0">
+                                    <tr>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">No. Tiket</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-blue-800 uppercase tracking-wider">Waktu Masuk</th>
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-blue-800 uppercase tracking-wider">Jumlah Muatan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    ${historyRows.length > 0 ? historyRows : '<tr><td colspan="3" class="text-center py-5 text-gray-500">Tidak ada riwayat.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        };
+        
+        const initializeApp = () => {
+            lookupBtn.addEventListener('click', handleVehicleLookup);
+            lookupSearch.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleVehicleLookup(); });
+            
+            resultArea.innerHTML = `<p class="text-center text-sm text-gray-500 p-4">Hasil pencarian akan ditampilkan di sini.</p>`;
+        };
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
